@@ -1,33 +1,27 @@
 import torch
 from model import MorningClassifier
-import re
+from utils import encode, load_vocab
 
-def tokenize(text):
-    return re.findall(r"\b\w+\b", text.lower())[:20]
+# === Параметры ===
+MODEL_PATH = "model.pt"
+VOCAB_PATH = "vocab.pt"
+MAX_LEN = 20
 
-def encode(text, vocab, max_len=20):
-    tokens = tokenize(text)
-    ids = [vocab.get(token, vocab["<UNK>"]) for token in tokens]
-    if len(ids) < max_len:
-        ids += [vocab["<PAD>"]] * (max_len - len(ids))
-    else:
-        ids = ids[:max_len]
-    return ids
-
-# === Load model & vocab ===
-vocab = torch.load("vocab.pt")
+# === Загрузка модели и словаря ===
+vocab = load_vocab(VOCAB_PATH)
 model = MorningClassifier(vocab_size=len(vocab))
-model.load_state_dict(torch.load("model.pt"))
+model.load_state_dict(torch.load(MODEL_PATH))
 model.eval()
 
-# === Predict ===
+# === Предсказание ===
 def predict(text):
-    input_ids = torch.tensor([encode(text, vocab)])
+    """Вернуть вероятность того, что текст — доброе утро."""
+    input_ids = torch.tensor([encode(text, vocab, max_len=MAX_LEN)])
     with torch.no_grad():
         prob = model(input_ids).item()
     return prob
 
-# === Example ===
+# === Пример ===
 while True:
     text = input("Enter a phrase: ")
     if not text:
